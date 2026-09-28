@@ -99,7 +99,8 @@ button:focus-visible{outline:2px solid var(--seal);outline-offset:2px}
   #ledger h2{font-size:18px}
   #ledgerToggle{display:inline;background:none;border:0;color:var(--seal);font-size:12px;float:right;cursor:pointer;padding:0}
   #mini{display:none}
-  #prompt{bottom:calc(12px + env(safe-area-inset-bottom,0px));font-size:13px;max-width:calc(100% - 110px)}
+  #prompt{top:calc(142px + env(safe-area-inset-top,0px));bottom:auto;font-size:13px;max-width:calc(100% - 24px);box-sizing:border-box}
+  #toasts{top:calc(200px + env(safe-area-inset-top,0px));width:calc(100% - 24px)}
   #mute{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
   .card{padding:22px 20px 20px}
   .card blockquote{font-size:17.5px}
@@ -152,6 +153,7 @@ button:focus-visible{outline:2px solid var(--seal);outline-offset:2px}
       <div class="keys">
         <b>Click or tap</b><span>walk somewhere, or act on a tree, goat, fish or building</span>
         <b>W A S D</b><span>walk with the keyboard</span>
+        <b>E or Space</b><span>act on the nearest thing</span>
         <b>Scroll</b><span>zoom in and out</span>
       </div>
       <div class="rule"></div>
@@ -272,7 +274,7 @@ function placeLandmarks(){
   set('kiln',2790,1372);set('enclosure',1880,1120);set('trap1',1430,905);set('trap2',2090,860);set('wall2',2650,1300);
   const cs=coastRay(78);set('canoe',cs.x-cs.nx*10,cs.y-cs.ny*10);set('bigcanoe',cs.x-cs.nx*200,cs.y-cs.ny*200);
   LM.footprint=coastRay(112);LM.party=coastRay(143);
-  const sp=coastRay(-40,400);LM.ship={x:sp.ox,y:sp.oy};LM.signal={x:sp.x,y:sp.y};
+  const sp=coastRay(-40,280);LM.ship={x:sp.ox,y:sp.oy};LM.signal={x:sp.x,y:sp.y};
   LM.turtleBeach=[coastRay(172),coastRay(181),coastRay(190),coastRay(198)];
   LM.goatHomes=[{x:1500,y:820},{x:2150,y:780},{x:1010,y:1110}];
   LM.parrotTree={x:1500,y:1215};LM.shoots={x:2560,y:1345};
@@ -392,8 +394,8 @@ const CH=[
   hint:'Walk up the creek and inland to the west. There is a green valley in the middle of the island where grapes, melons and limes grow wild.',
   objs:[{t:'Explore the valley',done:()=>F.valley,at:()=>LM.valley},{t:'Gather grapes',n:()=>F.grapes,of:3,at:nearest(fruits,e=>e.sub==='grapes'&&!e.empty)},{t:'Build a bower (12 wood)',done:()=>B.bower,at:()=>SITE.bower},{t:'Catch a young parrot',done:()=>F.poll,at:()=>EX.parrot}]},
  {title:'Earthenware and Bread',date:[1661,2,1],
-  hint:'Clay lies on the bank at the head of the creek. Fire pots in a kiln, then bake barley bread. With three goat skins you can sew clothes and an umbrella at the castle.',
-  objs:[{t:'Dig clay by the creek',n:()=>F.clayDug,of:4,at:()=>LM.clay},{t:'Build a clay kiln (4 clay, 4 wood)',done:()=>B.kiln,at:()=>SITE.kiln},{t:'Fire pots in the kiln',done:()=>F.potsFired>0,at:()=>SITE.kiln},{t:'Bake barley bread',done:()=>F.bread>0,at:()=>SITE.kiln},{t:'Sew goatskin clothes',done:()=>F.clothes,at:()=>SITE.castle}]},
+  hint:'Clay lies on the bank at the head of the creek. The kiln takes 4 clay and each firing of pots 3 more, so dig plenty. Fire pots in a kiln, then bake barley bread. With three goat skins you can sew clothes and an umbrella at the castle.',
+  objs:[{t:'Dig clay by the creek',n:()=>F.clayDug,of:4,at:()=>LM.clay},{t:'Build a clay kiln (4 clay, 4 wood)',done:()=>B.kiln,at:()=>SITE.kiln},{t:()=>F.potsFired>0||S.clay>=3?'Fire pots in the kiln (3 clay, 2 wood)':`Dig ${3-Math.floor(S.clay)} more clay for the pots (${Math.floor(S.clay)}/3)`,done:()=>F.potsFired>0,at:()=>S.clay>=3?SITE.kiln:LM.clay},{t:'Bake barley bread',done:()=>F.bread>0,at:()=>SITE.kiln},{t:'Sew goatskin clothes',done:()=>F.clothes,at:()=>SITE.castle}]},
  {title:'Flocks and Herds',date:[1662,3,1],intro:['trap'],
   hint:'Your powder will not last for ever. Dig pit traps up in the goat hills and build an enclosure near the valley. Carry the kids you catch home to it.',
   objs:[{t:'Build the goat enclosure (20 wood)',done:()=>B.enclosure,at:()=>SITE.enclosure},{t:'Dig two pit traps',n:()=>(B.trap1?1:0)+(B.trap2?1:0),of:2,at:()=>!B.trap1?SITE.trap1:SITE.trap2},{t:'Bring young goats home',n:()=>F.kids,of:3,at:()=>trapState.trap1.kid?SITE.trap1:trapState.trap2.kid?SITE.trap2:null},{t:'Dine with your little family',done:()=>F.dinner,at:()=>SITE.castle}]},
@@ -452,7 +454,7 @@ function queue(item){excerptQ.push(item);if(!excerptOpen)nextExcerpt();}
 function nextExcerpt(){const it=excerptQ.shift();const el=$('#excerpt');if(!it){excerptOpen=false;el.hidden=true;return;}
   excerptOpen=true;el.hidden=false;
   if(it.chapter!==undefined){const ch=CH[it.chapter];$('#exRef').textContent='Part '+ROMAN[it.chapter];$('#exWhen').textContent=fmtDate(curDate());
-    $('#exBody').innerHTML=`${it.gap?`<p class="small">${it.gap}</p>`:''}<h1>${ch.title}</h1><div class="rule"></div><p>${ch.hint}</p>`;$('#exNote').textContent='';}
+    $('#exBody').innerHTML=`${it.gap?`<p class="small">${it.gap}</p>`:''}<h1>${ch.title}</h1><div class="rule"></div><p>${tapText(ch.hint)}</p>`;$('#exNote').textContent='';}
   else{const e=EXC[it.key];$('#exRef').textContent=e.ref;$('#exWhen').textContent=e.when||'';$('#exBody').innerHTML=`<blockquote>${e.t}</blockquote>`;$('#exNote').textContent='Daniel Defoe, Robinson Crusoe';}
   el._cb=it.onClose;setTimeout(()=>$('#exGo').focus({preventScroll:true}),30);}
 $('#exGo').onclick=()=>{const cb=$('#excerpt')._cb;nextExcerpt();if(cb)cb();};
@@ -469,8 +471,10 @@ function updateHud(){const d=curDate();
   if(html!==lastHud){lastHud=html;const p=html.split('|');$('#date').innerHTML=p[0].replace(/^(\w+),/,'<i>$1,</i>');$('#notch').textContent=p[1];$('#season').textContent=p[2];$('#stores').innerHTML=p[3];}
   $('#belly .fill').style.width=clamp(hunger,0,100)+'%';$('#belly').classList.toggle('low',hunger<25);
   const ch=CH[CHI];if(!ch)return;let cur=-1;
-  const lis=ch.objs.map((o,i)=>{const done=objDone(o);if(!done&&cur<0)cur=i;const cnt=o.of?` <span class="cnt">${Math.min(Math.floor(o.n()),o.of)}/${o.of}</span>`:'';return `<li class="${done?'done':''}${!done&&cur===i?' cur':''}"><span class="m"></span><span>${o.t}${cnt}</span></li>`;}).join('');
-  const lh=CHI+lis;if(lh!==lastLedger){lastLedger=lh;$('#part').textContent='Part '+ROMAN[CHI];$('#chTitle').textContent=ch.title;$('#objs').innerHTML=lis;$('#hint').textContent=ch.hint;}}
+  const lis=ch.objs.map((o,i)=>{const done=objDone(o);if(!done&&cur<0)cur=i;const cnt=o.of?` <span class="cnt">${Math.min(Math.floor(o.n()),o.of)}/${o.of}</span>`:'';return `<li class="${done?'done':''}${!done&&cur===i?' cur':''}"><span class="m"></span><span>${typeof o.t==='function'?o.t():o.t}${cnt}</span></li>`;}).join('');
+  const lh=CHI+lis+pointer.touch;if(lh!==lastLedger){lastLedger=lh;$('#part').textContent='Part '+ROMAN[CHI];$('#chTitle').textContent=ch.title;$('#objs').innerHTML=lis;$('#hint').textContent=tapText(ch.hint);}}
+function tapWord(){return pointer.touch?'Tap':'Click';}
+function tapText(t){return t.replace(/\bclick\b/g,tapWord().toLowerCase()).replace(/\bClick\b/g,tapWord());}
 $('#ledgerToggle').onclick=()=>{const l=$('#ledger');l.classList.toggle('collapsed');$('#ledgerToggle').textContent=l.classList.contains('collapsed')?'show all':'hide';};
 $('#mute').onclick=()=>{muted=!muted;$('#mute').textContent='Sound: '+(muted?'off':'on');if(master)master.gain.setTargetAtTime(muted?0:.8,AC.currentTime,.1);};
 
@@ -497,15 +501,19 @@ function addTame(){const e=SITE.enclosure;tame.push({x:e.x+rand(-60,60),y:e.y+ra
 function checkChapter(){if(excerptOpen||ended||titleOpen)return;const ch=CH[CHI];if(!ch)return;
   if(ch.objs.every(objDone)){if(ch.onEnd)ch.onEnd();(ch.end||[]).forEach(k=>queue({key:k}));
     if(CHI+1<CH.length)startChapter(CHI+1);else finish();}}
-function finish(){ended=true;save(true);
+const pl=(n,one,many=one+'s')=>`${n} ${n===1?one:many}`;
+function finish(){ended=true;save(true);$('#tip').hidden=true;hover=null;
   const card=`<div class="card paper"><div class="chapnum">The end of the adventure</div><h1>Home to England</h1><h3>${Math.floor(day)+1} days upon the island</h3>
-  <p>You salvaged the wreck in ${F.trips} voyages, shot ${F.goatsShot} goats, landed ${F.fish} fish and ${F.turtles} turtles, reaped ${F.harvests} harvest${F.harvests===1?'':'s'}, baked ${F.bread} batch${F.bread===1?'':'es'} of bread and raised a flock of ${S.goats} tame goats. Poll, the dog, the cats and Friday kept you company.</p>
+  <p>You salvaged the wreck in ${pl(F.trips,'voyage')}, shot ${pl(F.goatsShot,'goat')}, landed ${pl(F.fish,'fish','fish')}${F.crabs?`, ${pl(F.turtles,'turtle')} and ${pl(F.crabs,'crab')}`:` and ${pl(F.turtles,'turtle')}`}, reaped ${pl(F.harvests,'harvest')}, baked ${pl(F.bread,'batch','batches')} of bread and raised a flock of ${pl(S.goats,'tame goat')}. Poll, the dog, the cats and Friday kept you company.</p>
   <div class="row"><button class="btn" id="again" type="button">Begin again</button></div></div>`;
   const v=document.createElement('div');v.className='veil';v.innerHTML=card;$('#app').appendChild(v);v.querySelector('#again').onclick=()=>{try{localStorage.removeItem(SAVE)}catch(e){}location.reload();};}
 
 /* ================= SAVE ================= */
 const SAVE='crusoe-voyage-v1';
-function save(clear){try{if(clear){localStorage.removeItem(SAVE);return;}localStorage.setItem(SAVE,JSON.stringify({S,F,B,CHI,day,hunger,field,trapState,P:{x:P.x,y:P.y}}));}catch(e){}}
+function save(clear){try{if(clear){localStorage.removeItem(SAVE);return;}
+  const pos=P.raft||!walkable(P.x,P.y)?{x:LM.landing.x-40,y:LM.landing.y+10}:{x:P.x,y:P.y};
+  const tf=[];trees.forEach((t,i)=>{if(t.felled)tf.push([i,Math.round(t.regrow*100)/100]);});
+  localStorage.setItem(SAVE,JSON.stringify({S,F,B,CHI,day,hunger,field,trapState,P:pos,tn:trees.length,tf,fr:fruits.map(f=>f.empty?Math.round(f.empty*100)/100:0)}));}catch(e){}}
 function loadSave(){try{const s=JSON.parse(localStorage.getItem(SAVE)||'null');return s&&s.S?s:null;}catch(e){return null;}}
 
 /* ================= INTERACTION ================= */
@@ -530,7 +538,7 @@ function info(e){
     if(field.st==='growing')return {verb:'Barley growing',no:`Ripe in about ${Math.max(1,Math.ceil((field.sowDay+2-day)*24))} hours`};
     return {verb:'Reap the barley',gain:'+6 barley',dur:3.5,range:60,act(){field.st='empty';add('barley',6);F.harvests++;}};
   case 'kiln':if(S.pots>=1&&S.barley>=3)return {verb:'Bake barley bread',gain:'+14 food, −3 barley',dur:3,range:34,act(){add('barley',-3);add('food',14);F.bread++;toast('The loaves come out brown and good.');}};
-    return {verb:'Fire pots',gain:'3 clay, 2 wood → 2 pots',no:(S.clay>=3&&S.wood>=2)?'':'Needs 3 clay and 2 wood',dur:4,range:34,act(){add('clay',-3);add('wood',-2);add('pots',2);F.potsFired++;if(F.potsFired===1)ex('pots');}};
+    return {verb:'Fire pots',gain:'3 clay, 2 wood → 2 pots',no:(S.clay>=3&&S.wood>=2)?'':[S.clay<3?`${3-Math.floor(S.clay)} more clay (dig it at the creek bank)`:'',S.wood<2?`${2-Math.floor(S.wood)} more wood`:''].filter(Boolean).join(' and ')+' needed',dur:4,range:34,act(){add('clay',-3);add('wood',-2);add('pots',2);F.potsFired++;if(F.potsFired===1)ex('pots');}};
   case 'castle':{
     if(CHI===5&&!F.clothes)return S.skins>=3?{verb:'Sew goatskin clothes',gain:'Cap, jacket and umbrella',dur:4,range:70,act(){add('skins',-3);F.clothes=true;ex('clothes');}}:{verb:'Your castle',no:`Sewing clothes needs 3 skins (you have ${S.skins})`};
     if(CHI===6&&!F.dinner&&F.kids>=3)return {verb:'Sit down to dinner',gain:'With Poll, the dog and the cats',dur:2,range:70,act(){F.dinner=true;ex('family');}};
@@ -542,7 +550,8 @@ function info(e){
   case 'parrot':return {verb:'Catch the young parrot',gain:'A companion',dur:3,range:34,act(){F.poll=true;EX.parrot=null;ex('parrot');}};
   case 'footprint':return {verb:'The print of a naked foot',no:''};
   case 'party':{const p=e;if(p.fled)return null;if(S.powder<=0)return {verb:'The canoe party',no:'You have no powder'};return {verb:'Fire over their heads',gain:'Free the prisoner',dur:.6,range:170,act(){rescue();}};}
-  case 'ship':return {verb:'An English ship at anchor',gain:'Signal her from the beach',dur:3,range:30,approach:LM.signal,act(){F.signalled=true;queue({key:'leave'});}};
+  case 'ship':if(F.signalled)return null;return {verb:'An English ship at anchor',gain:'Signal her from the beach',dur:3,range:30,approach:LM.signal,act(){if(!F.signalled){F.signalled=true;queue({key:'leave'});}}};
+  case 'signal':if(F.signalled)return null;return {verb:'Light a signal fire for the ship',gain:'She will send a boat',dur:3,range:30,act(){if(!F.signalled){F.signalled=true;queue({key:'leave'});}}};
   }
   return null;}
 function built(id){
@@ -561,8 +570,9 @@ function rescue(){const p=EX.party;sfxShot();add('powder',-1);p.fled=true;p.t=0;
 /* ================= INPUT ================= */
 const cv=$('#c'),ctx=cv.getContext('2d');
 const cam={x:CX,y:CY,zoom:1,shake:0};let DPR=1,VW=0,VH=0;
-function resize(){DPR=Math.min(2,window.devicePixelRatio||1);VW=cv.clientWidth;VH=cv.clientHeight;cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR);cam.zoom=VW<700?.72:1;nightCv.width=Math.ceil(VW/2);nightCv.height=Math.ceil(VH/2);}
-const nightCv=document.createElement('canvas'),nctx=nightCv.getContext('2d');
+function resize(){DPR=Math.min(2,window.devicePixelRatio||1);VW=cv.clientWidth;VH=cv.clientHeight;cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR);if(!userZoom)cam.zoom=VW<700?.72:1;nightCv.width=Math.ceil(VW/2);nightCv.height=Math.ceil(VH/2);}
+const nightCv=document.createElement('canvas'),nctx=nightCv.getContext('2d');let userZoom=false;
+const RM=window.matchMedia?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
 window.addEventListener('resize',resize);
 const toWorld=(sx,sy)=>({x:(sx-VW/2)/cam.zoom+cam.x,y:(sy-VH/2)/cam.zoom+cam.y});
 const toScreen=(x,y)=>({x:(x-cam.x)*cam.zoom+VW/2,y:(y-cam.y)*cam.zoom+VH/2});
@@ -578,19 +588,30 @@ function interactables(){const L=[];
   if(B.castle)L.push({kind:'castle',x:SITE.castle.x,y:SITE.castle.y-30,r:62});
   ['trap1','trap2'].forEach(id=>{if(B[id])L.push({kind:'trap',id,x:SITE[id].x,y:SITE[id].y,r:20});});
   for(const k of ['shoots','parrot','footprint','party','ship'])if(EX[k])L.push(EX[k]);
+  if(EX.ship&&!F.signalled)L.push({kind:'signal',x:LM.signal.x,y:LM.signal.y,r:34});
   return L;}
 function pick(wx,wy,slack){let best=null,bd=1e9;for(const e of interactables()){const d=Math.hypot(e.x-wx,(e.kind==='tree'?e.y-14:e.y)-wy);const lim=(e.r||16)+slack;if(d<lim&&d-(e.r||16)*.3<bd){bd=d-(e.r||16)*.3;best=e;}}return best;}
-let hover=null,pointer={x:0,y:0,down:null,touch:false};
-cv.addEventListener('pointermove',ev=>{pointer.x=ev.clientX;pointer.y=ev.clientY;pointer.touch=ev.pointerType!=='mouse';});
+let hover=null,pointer={x:0,y:0,down:null,touch:!!(window.matchMedia&&matchMedia('(hover: none)').matches),seen:false};
+cv.addEventListener('pointermove',ev=>{pointer.x=ev.clientX;pointer.y=ev.clientY;pointer.touch=ev.pointerType!=='mouse';if(!pointer.touch)pointer.seen=true;});
 cv.addEventListener('pointerdown',ev=>{pointer.down={x:ev.clientX,y:ev.clientY};pointer.touch=ev.pointerType!=='mouse';initAudio();if(AC&&AC.state==='suspended')AC.resume();});
 cv.addEventListener('pointerup',ev=>{if(!pointer.down)return;const moved=Math.hypot(ev.clientX-pointer.down.x,ev.clientY-pointer.down.y);pointer.down=null;if(moved>10||titleOpen||excerptOpen||ended)return;
   const w=toWorld(ev.clientX,ev.clientY);const e=pick(w.x,w.y,(ev.pointerType==='mouse'?10:22)/cam.zoom);
   if(P.act||P.raft)return;
   if(e){const inf=info(e);if(!inf)return;if(inf.no){toast(`${inf.verb}: ${inf.no}`);return;}P.goal={e,inf};P.dest=null;if(e.kind==='footprint')toast('The print of a man\'s naked foot.');}
   else{P.goal=null;P.dest={x:w.x,y:w.y};}});
-cv.addEventListener('wheel',ev=>{ev.preventDefault();cam.zoom=clamp(cam.zoom*(ev.deltaY>0?.9:1.1),.5,1.8);},{passive:false});
+cv.addEventListener('wheel',ev=>{ev.preventDefault();userZoom=true;cam.zoom=clamp(cam.zoom*(ev.deltaY>0?.9:1.1),.5,1.8);},{passive:false});
 const keys={};
-window.addEventListener('keydown',ev=>{if(excerptOpen&&(ev.key==='Enter'||ev.key==='Escape'||ev.key===' ')){ev.preventDefault();$('#exGo').click();return;}keys[ev.key.toLowerCase()]=true;});
+window.addEventListener('keydown',ev=>{if(excerptOpen&&(ev.key==='Enter'||ev.key==='Escape'||ev.key===' ')){ev.preventDefault();$('#exGo').click();return;}const k=ev.key.toLowerCase();
+  if((k==='e'||k===' ')&&!titleOpen&&!excerptOpen&&!ended&&!(document.activeElement&&/^(BUTTON|INPUT|TEXTAREA)$/.test(document.activeElement.tagName))){ev.preventDefault();if(!ev.repeat)actNearest();return;}
+  keys[k]=true;});
+const clearKeys=()=>{for(const k in keys)keys[k]=false;};
+window.addEventListener('blur',clearKeys);document.addEventListener('visibilitychange',()=>{if(document.hidden)clearKeys();});
+function actNearest(){if(P.act||P.raft)return;let best=null,bd=1e9,nb=null,nd=1e9;
+  for(const e of interactables()){const inf=info(e);if(!inf)continue;const t=inf.approach||e;const d=Math.hypot(t.x-P.x,(e.kind==='tree'?t.y-14:t.y)-P.y)-Math.min(inf.range||30,60);
+    if(inf.no){if(d<nd){nd=d;nb={e,inf};}}else if(d<bd){bd=d;best={e,inf};}}
+  if(best&&bd<90){P.goal=best;P.dest=null;return;}
+  if(nb&&nd<90){toast(`${nb.inf.verb}: ${nb.inf.no}`);return;}
+  toast('Nothing to do close by. Walk up to a tree, creature or building.');}
 window.addEventListener('keyup',ev=>{keys[ev.key.toLowerCase()]=false;});
 
 /* ================= UPDATE ================= */
@@ -616,9 +637,10 @@ function update(dt){
     let kx=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0),ky=(keys['s']||keys['arrowdown']?1:0)-(keys['w']||keys['arrowup']?1:0);
     if(kx||ky){P.goal=null;P.dest=null;const l=Math.hypot(kx,ky);P.moving=moveToward(P,P.x+kx/l*40,P.y+ky/l*40,spd,dt);}
     else if(P.goal){const {e,inf}=P.goal;const tgt=inf.approach||e;const d=Math.hypot(tgt.x-P.x,tgt.y-P.y);
-      if(d<=inf.range){P.goal=null;const fresh=info(e);if(fresh&&!fresh.no){P.act={...fresh,t:0,label:fresh.verb};if(fresh.dur<=.15){P.act=null;fresh.act();}}if(e.x!==P.x)P.face=e.x>P.x?1:-1;}
+      if(d<=inf.range){P.goal=null;const fresh=info(e);if(fresh&&!fresh.no){P.act={...fresh,t:0,label:fresh.verb,e};if(fresh.dur<=.15){P.act=null;fresh.act();}}if(e.x!==P.x)P.face=e.x>P.x?1:-1;}
       else{const ok=moveToward(P,tgt.x,tgt.y,spd,dt);P.moving=ok;if(!ok){if(d<inf.range+70&&e.kind==='fish'){P.goal=null;P.act={...inf,t:0,label:inf.verb};}else{P.goal=null;toast("You can't reach that from here.");}}}
-      if(e.kind==='goat'||e.kind==='fish'){if(!goats.includes(e)&&!fish.includes(e))P.goal=null;}}
+      if(e.kind==='goat'||e.kind==='fish'){if(!goats.includes(e)&&!fish.includes(e))P.goal=null;}
+      if(e.kind==='crab'&&(e.hide>0||!e.out))P.goal=null;}
     else if(P.dest){P.moving=moveToward(P,P.dest.x,P.dest.y,spd,dt);if(!P.moving)P.dest=null;}}
   // companions
   if(dog){const d=Math.hypot(P.x-dog.x,P.y-dog.y);if(d>600){dog.x=P.x-30;dog.y=P.y;}if(d>55)moveToward(dog,P.x-28*P.face,P.y+14,d>150?170:125,dt);}
@@ -817,7 +839,7 @@ function render(T,dt){
   if(titleOpen){cam.x=CX+Math.cos(T*.05)*500;cam.y=CY+Math.sin(T*.05)*260;}
   else{cam.x=lerp(cam.x,P.x,1-Math.exp(-dt*4));cam.y=lerp(cam.y,P.y,1-Math.exp(-dt*4));}
   cam.x=clamp(cam.x,zx,W-zx);cam.y=clamp(cam.y,zy,H-zy);
-  let sx=0,sy=0;if(quakeT>0){const k=Math.max(0,Math.sin(quakeT*Math.PI/2))*6;sx=rand(-k,k);sy=rand(-k,k);}
+  let sx=0,sy=0;if(quakeT>0&&!RM.matches){const k=Math.max(0,Math.sin(quakeT*Math.PI/2))*6;sx=rand(-k,k);sy=rand(-k,k);}
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#133a52';ctx.fillRect(0,0,cv.width,cv.height);
   ctx.setTransform(DPR*cam.zoom,0,0,DPR*cam.zoom,DPR*(VW/2-cam.x*cam.zoom+sx),DPR*(VH/2-cam.y*cam.zoom+sy));
   const vx0=cam.x-zx-60,vx1=cam.x+zx+60,vy0=cam.y-zy-80,vy1=cam.y+zy+80;const inV=(x,y)=>x>vx0&&x<vx1&&y>vy0&&y<vy1;
@@ -898,10 +920,10 @@ function updatePrompt(){let html='';
   if(P.act){const k=clamp(P.act.t/P.act.dur,0,1);html=`${P.act.label}…<div class="pb"><i style="width:${k*100}%"></i></div>`;}
   else if(P.raft)html=P.raft.ph==='out'?'Paddling the raft out to the wreck…':P.raft.ph==='load'?'Lowering goods onto the raft…':'Bringing the cargo ashore…';
   else if(P.goal)html=`Walking to: ${P.goal.inf.verb}`;
-  else if(isNight()&&B.castle&&!titleOpen)html='Night has fallen. Click your castle to sleep until morning.';
+  else if(isNight()&&B.castle&&!titleOpen)html=`Night has fallen. ${tapWord()} your castle to sleep until morning.`;
   else if(hunger<20)html='You are hungry and your stores are empty. Find food.';
   if(html!==lastPrompt){lastPrompt=html;$('#prompt').innerHTML=html;}}
-function updateTip(){const tip=$('#tip');if(pointer.touch||titleOpen||excerptOpen){tip.hidden=true;hover=null;return;}
+function updateTip(){const tip=$('#tip');if(!pointer.seen||pointer.touch||titleOpen||excerptOpen||ended){tip.hidden=true;hover=null;return;}
   const w=toWorld(pointer.x,pointer.y);hover=pick(w.x,w.y,10/cam.zoom);
   if(!hover){tip.hidden=true;return;}const inf=info(hover);if(!inf){tip.hidden=true;hover=null;return;}
   tip.innerHTML=`<b>${inf.verb}</b>${inf.gain?`<span class="gain">${inf.gain}</span>`:''}${inf.no?`<span class="no">${inf.no}</span>`:inf.note?`<span class="no">${inf.note}</span>`:''}`;
@@ -916,7 +938,9 @@ function loop(now){const dt=Math.min(.05,(now-lastT)/1000);lastT=now;const T=now
 function showGameUI(){['#hud','#ledger','#mute'].forEach(s=>$(s).hidden=false);$('#mini').hidden=false;}
 function begin(saved){initAudio();if(AC&&AC.state==='suspended')AC.resume();titleOpen=false;$('#title').hidden=true;showGameUI();
   if(saved){Object.assign(S,saved.S);Object.assign(F,saved.F);Object.assign(B,saved.B);day=saved.day;hunger=saved.hunger;Object.assign(field,saved.field||{});Object.assign(trapState,saved.trapState||{});
-    P.x=saved.P.x;P.y=saved.P.y;CHI=saved.CHI;lastDayInt=Math.floor(day);for(let i=0;i<=CHI;i++)spawnFor(i);if(F.quakeDone===false&&F.sown)quakeAt=performance.now()+15000;
+    P.x=saved.P.x;P.y=saved.P.y;if(!walkable(P.x,P.y)||hAt(P.x,P.y)<-.02){P.x=LM.landing.x-40;P.y=LM.landing.y+10;}CHI=saved.CHI;
+    if(saved.tf&&saved.tn===trees.length)saved.tf.forEach(([i,r])=>{if(trees[i]){trees[i].felled=true;trees[i].regrow=r;}});
+    if(saved.fr&&saved.fr.length===fruits.length)saved.fr.forEach((v,i)=>{fruits[i].empty=v||0;});lastDayInt=Math.floor(day);for(let i=0;i<=CHI;i++)spawnFor(i);if(F.quakeDone===false&&F.sown)quakeAt=performance.now()+15000;
     queue({chapter:CHI,gap:'Your voyage resumes'});}
   else{P.x=LM.landing.x-40;P.y=LM.landing.y+10;P.face=1;lastDayInt=0;startChapter(0);}
   cam.x=P.x;cam.y=P.y;updateHud();}
@@ -925,7 +949,7 @@ $('#resume').onclick=()=>begin(loadSave());
 
 resize();requestAnimationFrame(loop);
 genWorld(p=>{$('#loading').textContent=p<1?`Charting the island… ${Math.round(p*100)}%`:'';}).then(()=>{
-  placeLandmarks();spawnWorld();ready=true;$('#begin').disabled=false;$('#loading').textContent='';if(loadSave()){$('#resume').hidden=false;$('#begin').textContent='New voyage';}
+  placeLandmarks();{const mr=Math.random;let a=1719;Math.random=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};try{spawnWorld();}finally{Math.random=mr;}}ready=true;$('#begin').disabled=false;$('#loading').textContent='';if(loadSave()){$('#resume').hidden=false;$('#begin').textContent='New voyage';}
   $('#begin').focus({preventScroll:true});});
 })();
 </script>
