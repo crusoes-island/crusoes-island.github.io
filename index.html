@@ -100,7 +100,7 @@ button:focus-visible{outline:2px solid var(--seal);outline-offset:2px}
   #ledgerToggle{display:inline;background:none;border:0;color:var(--seal);font-size:12px;float:right;cursor:pointer;padding:0}
   #mini{display:none}
   #prompt{top:calc(142px + env(safe-area-inset-top,0px));bottom:auto;font-size:13px;max-width:calc(100% - 24px);box-sizing:border-box}
-  #toasts{top:calc(200px + env(safe-area-inset-top,0px));width:calc(100% - 24px)}
+  #toasts{top:auto;bottom:calc(128px + env(safe-area-inset-bottom,0px));width:calc(100% - 24px)}
   #mute{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
   .card{padding:22px 20px 20px}
   .card blockquote{font-size:17.5px}
@@ -859,9 +859,10 @@ function drawAirFauna(T,inV){
     ctx.fillStyle='rgba(220,235,230,.35)';ctx.beginPath();ctx.ellipse(-.5,-3.2,4.2,1.8,-.5+Math.sin(m.ph)*.25,0,7);ctx.fill();
     ctx.fillStyle=m.col;ctx.beginPath();ctx.ellipse(0,0,3,1.7,-.3,0,7);ctx.fill();ctx.fillStyle='#c0272d';ctx.beginPath();ctx.arc(2.2,-.6,1,0,7);ctx.fill();ctx.fillStyle=m.col;ctx.beginPath();ctx.arc(2.8,-1.4,1.3,0,7);ctx.fill();
     ctx.strokeStyle='#2b2118';ctx.lineWidth=.6;ctx.beginPath();ctx.moveTo(4,-1.5);ctx.lineTo(7.2,-1.1);ctx.moveTo(-2.6,.6);ctx.lineTo(-5,1.5);ctx.stroke();ctx.restore();}}
+let GLOW=null;function glowSpr(){if(GLOW)return GLOW;GLOW=document.createElement('canvas');GLOW.width=GLOW.height=40;const g=GLOW.getContext('2d'),r=g.createRadialGradient(20,20,0,20,20,20);r.addColorStop(0,'rgba(255,255,215,1)');r.addColorStop(.12,'rgba(240,255,170,.95)');r.addColorStop(1,'rgba(230,255,140,0)');g.fillStyle=r;g.fillRect(0,0,40,40);return GLOW;}
 function drawNightFauna(T,dark,inV){if(dark<.2)return;
   for(const f of flies){if(!inV(f.x,f.y))continue;const a=Math.sin(T*f.sp*2.3+f.ph);if(a<.35)continue;const x=f.x+Math.sin(T*.4+f.dx)*14,y=f.y+Math.cos(T*.33+f.dx)*10;const al=(a-.35)/.65*dark;
-    const g=ctx.createRadialGradient(x,y,0,x,y,10);g.addColorStop(0,`rgba(235,255,150,${.9*al})`);g.addColorStop(1,'rgba(230,255,140,0)');ctx.fillStyle=g;ctx.fillRect(x-10,y-10,20,20);ctx.fillStyle=`rgba(255,255,215,${al})`;ctx.fillRect(x-1.1,y-1.1,2.2,2.2);}
+    ctx.globalAlpha=al;ctx.drawImage(glowSpr(),x-10,y-10,20,20);ctx.globalAlpha=1;}
   for(const b of bats){if(!b.init||!inV(b.x,b.y))continue;const f=Math.sin(T*22+b.ph);ctx.save();ctx.translate(b.x,b.y-30);ctx.rotate(Math.sin(T*2+b.ph)*.3);ctx.fillStyle=`rgba(18,14,16,${.55+.4*dark})`;
     ctx.beginPath();ctx.moveTo(0,-1.5);ctx.lineTo(-4,-2-f*3);ctx.lineTo(-8,-1-f*4.5);ctx.lineTo(-7,1);ctx.lineTo(-5,.2);ctx.lineTo(-3.5,1.6);ctx.lineTo(0,1);ctx.lineTo(3.5,1.6);ctx.lineTo(5,.2);ctx.lineTo(7,1);ctx.lineTo(8,-1-f*4.5);ctx.lineTo(4,-2-f*3);ctx.closePath();ctx.fill();
     ctx.beginPath();ctx.ellipse(0,0,1.6,2.3,0,0,7);ctx.fill();ctx.restore();}}
